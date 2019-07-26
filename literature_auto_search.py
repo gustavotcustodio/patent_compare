@@ -8,6 +8,7 @@ import json
 from collections import Counter
 import time
 from matplotlib import pyplot as plt
+import numpy as np
 
 class LiteratureAutoSearch():
     def __init__(self):
@@ -32,12 +33,12 @@ class LiteratureAutoSearch():
         """
         generator_results = scholarly.search_pubs_query(query)
         self.results_scholar = [next(generator_results)
-                                for _ in range(2)]
-        time.sleep(1)
-        for _ in range(n_results):
-            res = next(generator_results).fill()
-            time.sleep(1)
-            self.results_scholar.append(res)
+                                for _ in range(n_results)]
+        # time.sleep(1)
+        # for _ in range(n_results):
+        #     res = next(generator_results).fill()
+        #     time.sleep(1)
+        #     self.results_scholar.append(res)
         return self.results_scholar
 
     def search_patent(self, patent_title, n_patents):
@@ -61,24 +62,46 @@ class LiteratureAutoSearch():
                                         results_limit=n_patents).as_list()
         return search_results
 
-    def plot_info_by_year(self, dict_year_count):
-        return None
+    def plot_hist_article(self, x, info, n_bins=None):
+        """ Plot an histogram with the frequency of the variable x."""
+        if n_bins:
+            plt.hist(x, bins=n_bins)
+        else:
+            plt.hist(x)
+        plt.title('Artigos mais relevantes por {}'.format(info))
+        plt.xlabel(info.capitalize())
+        plt.ylabel('Quantidade')
+        plt.show()
 
-    def get_year_and_count(self, publications):
-        years = list(map(lambda pub: pub.bib['year'], publications))
-        count = dict(Counter(years))
-        return count
+    def get_bib_info(self, publications, info):
+        # Check if publication contains the info, if it doesn't search for it.
+        n_publications = len(publications)
+        info_articles = []
+        for i in range(n_publications):
+            if info in publications[i].bib:
+                info_articles.append(publications[i].bib[info])
+            else:
+                publications[i] = publications[i].fill()
+                info_articles.append(publications[i].bib[info])
+        return info_articles
 
-    def plot_info_by_year(dict_year):
-        return None
-        #plt.bar()
+    def get_n_citations(self, publications):
+        return list(map(lambda pub: pub.citedby, publications))
 
 
 def main():
     searcher = LiteratureAutoSearch()
-    results = searcher.search_scholar('python', 4)
-    print(results[0].bib['title'])
+    query = input('Digite o nome da patente para ser buscada: ')
+    n_results = int(input('Digite o número de artigos mais'+
+                        ' relevantes para serem recuperados: '))
+    publications = searcher.search_scholar(query, n_results)
 
+    n_citations = searcher.get_n_citations(publications)
+    #years = searcher.get_bib_info(publications, 'year')
+
+    #print(publications[2].bib['year'])
+    searcher.plot_hist_article(n_citations, 'número de citações')
+    #searcher.plot_hist_article(years, 'year')
 
 if __name__ == '__main__':
     main()
